@@ -43,6 +43,7 @@ find_package(catkin REQUIRED COMPONENTS
    SE3TrajectoryPointRosMessage.msg
    SO3TrajectoryPointRosMessage.msg
    SpineDesiredAccelerationsRosMessage.msg
+   SpineTrajectoryRosMessage.msg
    StopAllTrajectoryRosMessage.msg
    SupportPolygonRosMessage.msg
    TrajectoryPoint1DRosMessage.msg

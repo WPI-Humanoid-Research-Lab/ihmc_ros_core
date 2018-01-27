@@ -31,12 +31,10 @@ private configureAdapterForSourceCode(String sourceLocation) {
     Path sourceCodeLocation = Paths.get(sourceLocation)
 
     if(Files.exists(sourceCodeLocation) && Files.exists(sourceCodeLocation.resolve("build.gradle"))) {
-        include "IHMCOpenRoboticsSoftware"
-        project(":IHMCOpenRoboticsSoftware").projectDir = sourceCodeLocation.toFile()
 
         Files.list(sourceCodeLocation).each { subdir ->
             if(Files.exists(subdir.resolve("build.gradle"))) {
-                include "IHMCOpenRoboticsSoftware:${subdir.fileName}"
+                includeBuild "${subdir.toAbsolutePath()}"
             }
         }
     }

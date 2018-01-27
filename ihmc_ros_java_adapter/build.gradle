@@ -1,14 +1,17 @@
 buildscript {
     repositories {
+        maven { url "https://plugins.gradle.org/m2/" }
         mavenCentral()
     }
 
     dependencies {
         classpath "org.yaml:snakeyaml:1.6"
+        classpath "gradle.plugin.us.ihmc:ihmc-build:0.10.4"
     }
 }
 
 apply plugin: 'java'
+apply plugin: "us.ihmc.ihmc-build"
 
 repositories {
     maven {
@@ -20,15 +23,23 @@ repositories {
     }
 
     maven {
+        url "https://artifactory.ihmc.us/artifactory/snapshots/"
+    }
+
+    maven {
+        url "https://artifactory.ihmc.us/artifactory/thirdparty/"
+    }
+
+    maven {
+        url "https://artifactory.ihmc.us/artifactory/releases/"
+    }
+
+    maven {
         url "https://github.com/rosjava/rosjava_mvn_repo/raw/master"
     }
 
     maven {
         url "http://clojars.org/repo/"
-    }
-
-    maven {
-        url "https://bengal.ihmc.us/nexus/content/repositories/thirdparty"
     }
 
     maven {
@@ -64,25 +75,34 @@ configurations {
  * Also grabs a reference to the top level project of all the subprojects so we can get at its build script
  * later.
  */
-subprojects { subproject ->
-    rootProject.configure(subproject, {
-        subproject.tasks.each {task ->
-            task.enabled = false
-        }
-    })
+// subprojects { subproject ->
+//     rootProject.configure(subproject, {
+//         subproject.tasks.each {task ->
+//             task.enabled = false
+//         }
+//     })
 
-    if(subproject.getParent().equals(rootProject)) {
-        rootProject.ext.set("sourceProject", subproject)
-    }
-}
+//     if(subproject.getParent().equals(rootProject)) {
+//         rootProject.ext.set("sourceProject", subproject)
+//     }
+// }
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '2.10'
+    gradleVersion = '4.3'
+}
+
+task buildSourceProject {
+    if(project.gradle.includedBuilds.empty)
+    {
+        return
+    }
+
+    dependsOn project.gradle.includedBuilds*.task(':publishToMavenLocal')
 }
 
 import us.ihmc.ros.java_adapter.yaml.IHMCROSJavaYamlLoader
 
-task parseYaml {
+task parseYaml(dependsOn: buildSourceProject) {
     if(!project.hasProperty("yaml")) {
         return
     }
@@ -123,6 +143,9 @@ task warmUp(dependsOn: parseYaml) {
 }
 
 task runJava(type: GradleBuild) {
+    if(!project.hasProperty("yaml")) {
+        return
+    }
     buildFile "build.gradle"
     def allTasks = new ArrayList<String>()
 
@@ -168,23 +191,14 @@ task runJavaDelegate(type: JavaExec, dependsOn: parseYaml) {
     }
 }
 
-task buildSourceProject(type: GradleBuild) {
-    if(subprojects.empty)
-    {
-        return
-    }
-    buildFile = rootProject.sourceProject.buildFile
-    tasks = ['publishAllToMavenLocal']
-}
+// parseYaml.mustRunAfter buildSourceProject
 
-parseYaml.mustRunAfter buildSourceProject
+// gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
+//     if(graph.hasTask(parseYaml) && !project.hasProperty("yaml")) {
+//         throw new GradleException("Attempting to use the Java execution adapter without setting the yaml location property. Please set the project property \"yaml\" to the location of the yaml configuration.\nFor more information on Gradle properties see https://docs.gradle.org/current/userguide/build_environment.html")
+//     }
 
-gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
-    if(graph.hasTask(parseYaml) && !project.hasProperty("yaml")) {
-        throw new GradleException("Attempting to use the Java execution adapter without setting the yaml location property. Please set the project property \"yaml\" to the location of the yaml configuration.\nFor more information on Gradle properties see https://docs.gradle.org/current/userguide/build_environment.html")
-    }
-
-    if(graph.hasTask(buildSourceProject) && subprojects.empty) {
-        throw new GradleException("Cannot build local source project, no subprojects are configured. Please set the IHMC_SOURCE_LOCATION environment variable.")
-    }
-}
+//     if(graph.hasTask(buildSourceProject) && subprojects.empty) {
+//         throw new GradleException("Cannot build local source project, no subprojects are configured. Please set the IHMC_SOURCE_LOCATION environment variable.")
+//     }
+// }

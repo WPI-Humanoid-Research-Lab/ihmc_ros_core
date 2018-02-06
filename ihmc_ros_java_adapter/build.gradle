@@ -42,6 +42,21 @@ repositories {
     mavenCentral()
 }
 
+if(!gradle.startParameter.taskNames.contains("warmUp"))
+{
+    gradle.startParameter.excludedTaskNames << "warmUp"
+    project.ext.doWarmup = false
+}
+else
+{
+    project.ext.doWarmup = true
+}
+
+configurations {
+    all*.exclude group: 'org.bytedeco', module: 'javacpp-presets'
+}
+
+
 /*
  * Disable all of the tasks on the subproject so that invoking gradle commands on this project are quicker.
  * Because integration with the subproject is optional and is achieved using a GradleBuild type task, we
@@ -94,7 +109,14 @@ task parseYaml {
     }
 }
 
-task warmUp(dependsOn: parseYaml) << {
+task warmUp(dependsOn: parseYaml) {
+    if(!project.doWarmup)
+    {
+        return;
+    }
+    configurations.ros {
+        exclude group: 'org.bytedeco', module: 'javacpp-presets'
+    }
     configurations.ros.resolve()
 }
 

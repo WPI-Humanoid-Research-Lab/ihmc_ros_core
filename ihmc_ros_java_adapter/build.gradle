@@ -42,9 +42,9 @@ repositories {
         url "http://clojars.org/repo/"
     }
 
-    maven {
-        url 'http://updates.jmonkeyengine.org/maven'
-    }
+    // maven {
+    //     url 'http://updates.jmonkeyengine.org/maven'
+    // }
 
     mavenLocal()
 
